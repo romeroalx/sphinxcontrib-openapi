@@ -106,6 +106,19 @@ def _httpresource(endpoint, method, properties):
         yield '{indent}:status {status}:'.format(**locals())
         for line in response['description'].splitlines():
             yield '{indent}{indent}{line}'.format(**locals())
+        if 'schema' in response:
+            schema = response['schema']
+            desc = ''
+            if 'title' in schema:
+                desc = ':json:object:`{0}` object'.format(schema['title'])
+            if 'type' in schema:
+                desc = schema['type']
+                if schema['type'] == 'array' and 'items' in schema:
+                    if 'type' in schema['items']:
+                        desc = schema['items']['type']
+                    if 'title' in schema['items']:
+                        desc = 'array of :json:object:`{0}` objects'.format(schema['items']['title'])
+            yield '{indent}{indent}Returns: {desc}'.format(**locals())
 
     # print request header params
     for param in filter(lambda p: p['in'] == 'header', parameters):
