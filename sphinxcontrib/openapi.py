@@ -141,6 +141,14 @@ def _jsonresource(definition, data):
             data_type = ''
             if 'type' in data['properties'][field]:
                 data_type = data['properties'][field]['type']
+            if data_type == 'array' and 'items' in data['properties'][field]:
+                data_type = '[]'
+                if 'type' in data['properties'][field]['items']:
+                    data_type = '[{0}]'.format(data['properties'][field]['items']['type'])
+                if 'title' in data['properties'][field]['items']:
+                    data_type = ''
+                    json_obj = ':json:object:`{0}`'.format(data['properties'][field]['items']['title'])
+                    yield '{indent}:proptype {field}: [{json_obj}]'.format(**locals())
             yield '{indent}:property {data_type} {field}: {desc}'.format(**locals())
 
 
