@@ -123,6 +123,27 @@ def _httpresource(endpoint, method, properties):
     yield ''
 
 
+def _jsonresource(definition, data):
+    indent = '   '
+
+    yield '.. json:object:: {0}'.format(definition)
+    yield ''
+
+    if 'description' in data:
+        yield '{indent}{desc}'.format(indent=indent, desc=data['description'])
+        yield ''
+
+    if 'properties' in data:
+        for field in data['properties']:
+            desc = ''
+            if 'description' in data['properties'][field]:
+                desc = data['properties'][field]['description']
+            data_type = ''
+            if 'type' in data['properties'][field]:
+                data_type = data['properties'][field]['type']
+            yield '{indent}:property {data_type} {field}: {desc}'.format(**locals())
+
+
 def _normalize_spec(spec, **options):
     # OpenAPI spec may contain JSON references, so we need resolve them
     # before we access the actual values trying to build an httpdomain
@@ -167,6 +188,32 @@ def openapi2httpdomain(spec, **options):
     return iter(itertools.chain(*generators))
 
 
+def openapi2jsondomain(spec, **options):
+    generators = []
+
+    # OpenAPI spec may contain JSON references, common properties, etc.
+    # Trying to render the spec "As Is" will require to put multiple
+    # if-s around the code. In order to simplify flow, let's make the
+    # spec to have only one (expected) schema, i.e. normalize it.
+    _normalize_spec(spec, **options)
+
+    # If 'definitions' are passed we've got to ensure they exist within an OpenAPI
+    # spec; otherwise raise error and ask user to fix that.
+    if 'definitions' in options:
+        if not set(options['definitions']).issubset(spec['definitions']):
+            raise ValueError(
+                'One or more definitions are not defined in the spec: %s.' % (
+                    ', '.join(set(options['definitions']) - set(spec['definitions'])),
+                )
+            )
+
+    for definition in options.get('definitions', spec['definitions']):
+        if 'properties' in spec['definitions'][definition]:
+            generators.append(_jsonresource(definition, spec['definitions'][definition]))
+
+    return iter(itertools.chain(*generators))
+
+
 class OpenApi(Directive):
 
     required_arguments = 1                  # path to openapi spec
@@ -174,6 +221,7 @@ class OpenApi(Directive):
     option_spec = {
         'encoding': directives.encoding,    # useful for non-ascii cases :)
         'paths': lambda s: s.split(),       # endpoints to be rendered
+        'definitions': lambda s: s.split()  # definitions to be rendered
     }
 
     def run(self):
@@ -195,6 +243,14 @@ class OpenApi(Directive):
         # stack.
         self.options.setdefault('uri', 'file://%s' % abspath)
 
+        # Ensure that we do not print _all_ urls when only 'definitions' are
+        # requested (and vice versa)
+        if self.options.get('paths') is None and self.options.get('definitions'):
+            self.options['paths'] = []
+
+        if self.options.get('definitions') is None and self.options.get('paths'):
+            self.options['definitions'] = []
+
         # reStructuredText DOM manipulation is pretty tricky task. It requires
         # passing dozen arguments which is not easy without well-documented
         # internals. So the idea here is to represent OpenAPI spec as
@@ -202,6 +258,9 @@ class OpenApi(Directive):
         # real DOM.
         viewlist = ViewList()
         for line in openapi2httpdomain(spec, **self.options):
+            viewlist.append(line, '<openapi>')
+
+        for line in openapi2jsondomain(spec, **self.options):
             viewlist.append(line, '<openapi>')
 
         # Parse reStructuredText contained in `viewlist` and return produced
@@ -214,4 +273,5 @@ class OpenApi(Directive):
 
 def setup(app):
     app.setup_extension('sphinxcontrib.httpdomain')
+    app.setup_extension('sphinxjsondomain')
     app.add_directive('openapi', OpenApi)

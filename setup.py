@@ -31,6 +31,7 @@ setup(
     ],
     install_requires=[
         'sphinxcontrib-httpdomain >= 1.5.0',
+        'sphinx-jsondomain >= 0.0.2',
         'PyYAML >= 3.12',
         'jsonschema >= 2.5.1',
     ],
