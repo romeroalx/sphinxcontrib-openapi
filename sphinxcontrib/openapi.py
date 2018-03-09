@@ -235,6 +235,22 @@ def openapi2jsondomain(spec, **options):
     return iter(itertools.chain(*generators))
 
 
+def yaml_ordered_load(stream):
+    # Based on https://stackoverflow.com/a/21912744/297793
+    class OrderedLoader(yaml.Loader):
+        pass
+
+    def construct_mapping(loader, node):
+        loader.flatten_mapping(node)
+        return collections.OrderedDict(loader.construct_pairs(node))
+
+    OrderedLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+        construct_mapping)
+
+    return yaml.load(stream, OrderedLoader)
+
+
 class OpenApi(Directive):
 
     required_arguments = 1                  # path to openapi spec
@@ -257,7 +273,7 @@ class OpenApi(Directive):
         # the one specified in Sphinx's config.
         encoding = self.options.get('encoding', env.config.source_encoding)
         with io.open(abspath, 'rt', encoding=encoding) as stream:
-            spec = yaml.load(stream, _YamlOrderedLoader)
+            spec = yaml_ordered_load(stream)
 
         # URI parameter is crucial for resolving relative references. So
         # we need to set this option properly as it's used later down the
