@@ -85,8 +85,9 @@ def _httpresource(endpoint, method, properties):
         for line in param.get('description', '').splitlines():
             yield '{indent}{indent}{line}'.format(**locals())
 
-    # print response status codes
-    for status, response in responses.items():
+    # print response status codes in sorted order
+    for status in sorted(responses.keys()):
+        response = responses[status]
         yield '{indent}:status {status}:'.format(**locals())
         for line in response['description'].splitlines():
             yield '{indent}{indent}{line}'.format(**locals())
