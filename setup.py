@@ -26,6 +26,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     use_scm_version=True,
+    python_requires='>=3.6',
     setup_requires=[
         'setuptools_scm >= 1.15',
     ],

@@ -24,22 +24,6 @@ from docutils.statemachine import ViewList
 
 from sphinx.util.nodes import nested_parse_with_titles
 
-
-# Dictionaries do not guarantee to preserve the keys order so when we load
-# JSON or YAML - we may loose the order. In most cases it's not important
-# because we're interested in data. However, in case of OpenAPI spec it'd
-# be really nice to preserve them since, for example, endpoints may be
-# grouped logically and that improved readability.
-class _YamlOrderedLoader(yaml.SafeLoader):
-    pass
-
-
-_YamlOrderedLoader.add_constructor(
-    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-    lambda loader, node: collections.OrderedDict(loader.construct_pairs(node))
-)
-
-
 def _resolve_refs(uri, spec):
     """Resolve JSON references in a given dictionary.
 
@@ -257,7 +241,7 @@ class OpenApi(Directive):
         # the one specified in Sphinx's config.
         encoding = self.options.get('encoding', env.config.source_encoding)
         with io.open(abspath, 'rt', encoding=encoding) as stream:
-            spec = yaml.load(stream, _YamlOrderedLoader)
+            spec = yaml.safe_load(stream)
 
         # URI parameter is crucial for resolving relative references. So
         # we need to set this option properly as it's used later down the
