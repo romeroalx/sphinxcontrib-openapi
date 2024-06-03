@@ -28,7 +28,7 @@ setup(
     use_scm_version=False,
     python_requires='>=3.6',
     setup_requires=[
-        'setuptools_scm >= 1.15,< 8.0.4',
+        'setuptools_scm >= 8.1.0',
     ],
     install_requires=[
         'sphinxcontrib-httpdomain >= 1.5.0',
